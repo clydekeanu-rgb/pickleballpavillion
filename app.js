@@ -41,72 +41,53 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Smooth scroll and active state highlighting
-  navLinks.forEach(link => {
+  // Smooth scroll with dynamic header-height offset for all anchor links
+  const allAnchorLinks = document.querySelectorAll('a[href^="#"]');
+  allAnchorLinks.forEach(link => {
     link.addEventListener('click', (e) => {
-      const targetId = link.getAttribute('href');
-      if (targetId && targetId.startsWith('#')) {
-        e.preventDefault();
-        
-        // Close mobile nav drawer if open
-        if (mainNav.classList.contains('open')) {
-          navToggleBtn.setAttribute('aria-expanded', 'false');
-          navToggleBtn.classList.remove('open');
-          mainNav.classList.remove('open');
-        }
+      const targetId = link.getAttribute('href').slice(1);
+      if (!targetId) return;
+      const target = document.getElementById(targetId);
+      if (!target) return;
 
-        const targetElement = document.querySelector(targetId);
-        if (targetElement) {
-          const headerOffset = 70;
-          const elementPosition = targetElement.getBoundingClientRect().top;
-          const offsetPosition = elementPosition + window.scrollY - headerOffset;
+      e.preventDefault();
 
-          window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth'
-          });
-        }
+      // Close mobile nav drawer if open
+      if (mainNav && mainNav.classList.contains('open')) {
+        navToggleBtn.setAttribute('aria-expanded', 'false');
+        navToggleBtn.classList.remove('open');
+        mainNav.classList.remove('open');
       }
+
+      const headerHeight = header ? header.offsetHeight : 0;
+      const top = target.getBoundingClientRect().top + window.scrollY - headerHeight - 16;
+      window.scrollTo({ top, behavior: 'smooth' });
     });
   });
 
-  // Hero parallax motion on scroll (subtle, disabled for reduced-motion)
-  const heroImage = document.querySelector('.hero-bg-image');
-  if (heroImage && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    window.addEventListener('scroll', () => {
-      const scrollPos = window.scrollY;
-      if (scrollPos < window.innerHeight) {
-        heroImage.style.transform = `scale(1.05) translateY(${scrollPos * 0.15}px)`;
-      }
-    });
-  }
+  // Active nav-link highlighting is handled via IntersectionObserver below
+
 
 
   /* ==========================================================================
      2. Scroll-Triggered Reveal Animations
      ========================================================================== */
-  const revealEls = document.querySelectorAll('.reveal');
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  
-  if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry, i) => {
+  const revealEls = document.querySelectorAll('.reveal, .scroll-reveal');
+
+  if ('IntersectionObserver' in window && revealEls.length) {
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          if (prefersReducedMotion) {
-            entry.target.classList.add('is-visible');
-          } else {
-            setTimeout(() => entry.target.classList.add('is-visible'), i * 80);
-          }
-          observer.unobserve(entry.target);
+          entry.target.classList.add('is-visible');
+          revealObserver.unobserve(entry.target);
         }
       });
     }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
-    revealEls.forEach(el => observer.observe(el));
+
+    revealEls.forEach((el) => revealObserver.observe(el));
   } else {
-    // Fallback: show everything instantly if observer is not supported
-    revealEls.forEach(el => {
-      el.classList.add('is-visible');
-    });
+    // Fallback: make everything visible instantly (no observer support or empty list)
+    revealEls.forEach((el) => el.classList.add('is-visible'));
   }
 
 
