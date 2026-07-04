@@ -1,5 +1,5 @@
 /**
- * HERO PARTICLE EFFECT — The Paddleboard Pavilion
+ * HERO PARTICLE EFFECT — The Pickleball Pavilion
  *
  * Renders the hero photo as a grid of tiny coloured 3D cubes (Three.js
  * InstancedMesh). At page-load the image reads as a coherent whole; scrolling

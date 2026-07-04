@@ -1,5 +1,5 @@
 /**
- * THE PADDLEBOARD PAVILION — WEBSITE CORE LOGIC
+ * THE PICKLEBALL PAVILION — WEBSITE CORE LOGIC
  * Includes: Nav actions, Scroll reveal observers, Accordions, Form handling, and Mock booking widget.
  */
 
