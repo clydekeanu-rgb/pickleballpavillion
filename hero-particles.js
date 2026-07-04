@@ -83,6 +83,28 @@ function buildMesh(imgRatio) {
 
 // ─── Load hero image, sample pixels, colour the instances ────────────────────
 let meshRef = null;
+let currentNCol = 0;
+
+function applyCoverScale(mesh, nRow, nCol) {
+  const vFovRad = camera.fov * (Math.PI / 180);
+  const frustumHeight = 2 * FOCUS_CAM_Z * Math.tan(vFovRad / 2);
+  const frustumWidth = frustumHeight * camera.aspect;
+
+  const scaleToCoverHeight = frustumHeight / nRow;
+  const scaleToCoverWidth = frustumWidth / nCol;
+  const coverScale = Math.max(scaleToCoverHeight, scaleToCoverWidth);
+
+  mesh.scale.set(coverScale, coverScale, 1);
+}
+
+function sizeOverlay() {
+  const overlay = document.getElementById('particle-dark-overlay');
+  const bookingSection = document.getElementById('booking');
+  if (!overlay || !bookingSection) return;
+
+  const height = bookingSection.getBoundingClientRect().top + window.scrollY;
+  overlay.style.height = `${height}px`;
+}
 
 const img       = new Image();
 img.crossOrigin = 'anonymous';
@@ -92,6 +114,10 @@ img.onload = () => {
   const { mesh, nCol } = buildMesh(imgRatio);
   scene.add(mesh);
   meshRef = mesh;
+  currentNCol = nCol;
+
+  applyCoverScale(mesh, N_ROW, nCol);
+  sizeOverlay();
 
   // Downsample to a small canvas to sample pixel colours efficiently
   const can    = document.createElement('canvas');
@@ -142,6 +168,11 @@ function resize() {
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+
+  if (meshRef && currentNCol > 0) {
+    applyCoverScale(meshRef, N_ROW, currentNCol);
+  }
+  sizeOverlay();
 }
 
 window.addEventListener('resize', resize, { passive: true });
@@ -152,14 +183,24 @@ const canvas    = renderer.domElement;
 canvas.id       = 'hero-particle-canvas';
 document.body.prepend(canvas);
 
-// ─── Scroll-driven camera dolly (focus → disperse across full page) ───────────
-// Canvas opacity stays at 1 throughout — opaque section backgrounds below the
-// hero cover it naturally; no manual fade needed.
+// ─── Scroll-driven camera dolly (focus → disperse tracking the Booking section) ──
+
+function getDisperseDistance() {
+  const bookingSection = document.getElementById('booking');
+  if (bookingSection) {
+    return bookingSection.getBoundingClientRect().top + window.scrollY - (window.innerHeight * 0.15);
+  }
+  return document.documentElement.scrollHeight - window.innerHeight;
+}
+
+let disperseDistance = getDisperseDistance();
+window.addEventListener('resize', () => {
+  disperseDistance = getDisperseDistance();
+}, { passive: true });
 
 function onScroll() {
-  const scrollY   = window.scrollY;
-  const H         = document.documentElement.scrollHeight - window.innerHeight;
-  const r         = H > 0 ? Math.min(scrollY / H, 1) : 0;
+  const scrollY = window.scrollY;
+  const r = disperseDistance > 0 ? Math.min(scrollY / disperseDistance, 1) : 0;
 
   // Drive camera from FOCUS_CAM_Z (whole image) → DISPERSE_CAM_Z (max scatter)
   const z = FOCUS_CAM_Z + (DISPERSE_CAM_Z - FOCUS_CAM_Z) * r;

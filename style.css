@@ -644,6 +644,7 @@ p:last-child {
 /* 7. Hero Section */
 .hero-section {
   position: relative;
+  z-index: 2;
   height: 100vh;
   min-height: 650px;
   display: flex;
@@ -685,13 +686,7 @@ p:last-child {
 }
 
 .hero-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle, rgba(20, 24, 27, 0.4) 0%, rgba(20, 24, 27, 0.85) 100%);
-  z-index: 2;
+  display: none;
 }
 
 .hero-content {
@@ -769,7 +764,9 @@ p:last-child {
 
 /* 8. About Section */
 .about-section {
-  background-color: var(--color-paper);
+  background-color: transparent;
+  position: relative;
+  z-index: 2;
 }
 
 .about-section .image-block:hover img {
@@ -795,7 +792,9 @@ p:last-child {
 /* 10. Amenities Section */
 .amenities-section {
   padding: 100px 0;
-  background-color: var(--color-paper);
+  background-color: transparent;
+  position: relative;
+  z-index: 2;
 }
 
 .amenities-grid {
@@ -812,10 +811,12 @@ p:last-child {
 }
 
 .amenity-item {
-  background-color: var(--color-surface);
+  background-color: rgba(34, 28, 20, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid var(--color-border);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   transition: var(--transition-smooth);
 }
 
@@ -856,10 +857,12 @@ p:last-child {
 }
 
 .amenity-list-card {
-  background-color: var(--color-surface);
+  background-color: rgba(34, 28, 20, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-radius: 12px;
   padding: 30px;
-  border: 1px solid var(--color-border);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .list-card-icon {
@@ -1159,7 +1162,9 @@ p:last-child {
 /* 12. Pricing Section */
 .pricing-section {
   padding: 100px 0;
-  background-color: var(--color-paper);
+  background-color: transparent;
+  position: relative;
+  z-index: 2;
 }
 
 .pricing-cards-grid {
@@ -1176,9 +1181,11 @@ p:last-child {
 }
 
 .pricing-card {
-  background-color: var(--color-surface);
+  background-color: rgba(34, 28, 20, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-radius: 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   padding: 40px;
   display: flex;
   flex-direction: column;
@@ -1191,7 +1198,7 @@ p:last-child {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.05);
 }
 
-.featured-pricing {
+.pricing-card.featured-pricing {
   border-color: var(--color-primary);
   box-shadow: 0 8px 24px rgba(255, 107, 53, 0.04);
 }
@@ -1276,14 +1283,16 @@ p:last-child {
 
 .drop-in-highlight {
   text-align: center;
-  background-color: var(--color-surface);
+  background-color: rgba(34, 28, 20, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-radius: 12px;
   padding: 24px;
-  border: 1px solid var(--color-border);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   max-width: 700px;
   margin: 0 auto;
   font-size: 1rem;
-  color: var(--color-muted);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .drop-in-highlight strong {
@@ -2026,5 +2035,52 @@ p:last-child {
   pointer-events: none;
   /* short opacity transition so the scroll-driven fade feels continuous */
   transition: opacity 0.1s linear;
+}
+
+/* 23. Continuous Dark Particle Overlay (covers Hero to Booking) */
+#particle-dark-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1; /* above particle canvas, below section content (z-index 2) */
+  background: rgba(20, 24, 27, 0.65);
+  pointer-events: none;
+}
+
+/* 24. Text Color & Contrast Overrides for Dark-Backed Sections */
+#about,
+#amenities,
+#pricing {
+  color: #FFFFFF;
+}
+
+#about h2,
+#amenities h2,
+#pricing h2 {
+  color: #FFFFFF;
+}
+
+#about .body-text,
+#about .body-text.highlight-text,
+.amenity-content p,
+.amenity-list-card p,
+.pricing-card,
+.tier-price,
+.tier-price span,
+.pricing-perks li,
+.pricing-perks li strong,
+.drop-in-highlight,
+.drop-in-highlight strong {
+  color: #FFFFFF !important;
+}
+
+.pricing-perks li span,
+.pricing-perks li {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.drop-in-highlight strong {
+  color: var(--color-accent-gold) !important;
 }
 
