@@ -140,6 +140,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalPayBtn = document.getElementById('modal-pay-btn');
   const modalPayAmount = document.getElementById('modal-pay-amount');
   const modalBookingDetails = document.getElementById('modal-booking-details');
+  const bookingCustomerName = document.getElementById('booking-customer-name');
+  const bookingCustomerContact = document.getElementById('booking-customer-contact');
+  const bookingModalError = document.getElementById('booking-modal-error');
   const successReceiptContent = document.getElementById('success-receipt-content');
   const successCloseBtn = document.getElementById('success-close-btn');
 
@@ -165,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const dayName = days[targetDate.getDay()];
       const dayNum = targetDate.getDate();
       const monthName = months[targetDate.getMonth()];
-      const dateString = `${monthName} ${dayNum}, ${targetDate.getFullYear()}`;
+      const dateString = window.PBPStore.formatDate(targetDate);
 
       const dateBtn = document.createElement('button');
       dateBtn.type = 'button';
@@ -194,34 +197,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Generate timeslots programmatically with simulated real-time booking rates
+  // Generate timeslots from the shared localStorage-backed demo data.
   const generateTimeSlots = () => {
     if (!timeslotContainer) return;
     timeslotContainer.innerHTML = '';
 
-    const times = [
-      '06:00 AM', '07:00 AM', '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM',
-      '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM',
-      '06:00 PM', '07:00 PM', '08:00 PM', '09:00 PM', '10:00 PM'
-    ];
-
-    times.forEach(time => {
-      // Simulate occupancy: 35% chance a slot is booked/disabled (higher chance on peak hours)
-      const hour = parseInt(time.split(':')[0]);
-      const isPm = time.includes('PM');
-      const isPeakHour = (isPm && hour >= 5 && hour < 10) || (!isPm && hour >= 6 && hour <= 9);
-      
-      const probability = isPeakHour ? 0.65 : 0.25;
-      const isBooked = Math.random() < probability;
+    for (let hour = window.PBPStore.OPERATING_START; hour < window.PBPStore.OPERATING_END; hour += 1) {
+      const time = window.PBPStore.makeSlot(hour);
+      const availableCourts = window.PBPStore.getAvailableCourts(selectedDate, time, selectedCourtType);
+      const isBooked = availableCourts.length === 0;
 
       const slotBtn = document.createElement('button');
       slotBtn.type = 'button';
       slotBtn.className = 'timeslot-btn';
-      slotBtn.innerText = time;
+      slotBtn.innerText = window.PBPStore.toCivilTime(time);
 
       if (isBooked) {
         slotBtn.disabled = true;
-        slotBtn.title = "Already Booked";
+        slotBtn.title = 'Fully booked';
+        slotBtn.innerText = `${window.PBPStore.toCivilTime(time)} - Fully booked`;
       }
 
       slotBtn.addEventListener('click', () => {
@@ -232,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       timeslotContainer.appendChild(slotBtn);
-    });
+    }
   };
 
   // Court toggle logic
@@ -286,14 +280,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Launch checkout confirmation dialog
   if (confirmBookingBtn) {
     confirmBookingBtn.addEventListener('click', () => {
-      const bookingRef = 'PBP-' + Math.floor(100000 + Math.random() * 900000);
-      
+      if (bookingCustomerName) bookingCustomerName.value = '';
+      if (bookingCustomerContact) bookingCustomerContact.value = '';
+      if (bookingModalError) bookingModalError.hidden = true;
+
       modalPayAmount.innerText = courtPrice;
       modalBookingDetails.innerHTML = `
-        <div class="modal-receipt-item">
-          <span>Booking Reference</span>
-          <strong>${bookingRef}</strong>
-        </div>
         <div class="modal-receipt-item">
           <span>Court Type</span>
           <strong>${selectedCourtType === 'indoor' ? 'Indoor Climate-Controlled' : 'Classic Outdoor'}</strong>
@@ -315,9 +307,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <strong style="color: var(--color-primary-dark); font-size: 1.15rem;">₱${courtPrice}.00</strong>
         </div>
       `;
-
-      // Store booking reference on pay button dataset
-      modalPayBtn.dataset.bookingRef = bookingRef;
 
       openModal(bookingModal);
     });

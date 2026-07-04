@@ -38,7 +38,6 @@
       </div>
       <div class="header-actions">
         <span id="role-badge" class="role-badge">Owner</span>
-        <button id="reset-demo" class="secondary-button" type="button">Reset Demo Data</button>
         <button id="logout" class="ghost-button" type="button">Log Out</button>
       </div>
     </header>
@@ -120,6 +119,8 @@
       </section>
 
       <section id="staff-panel" class="tab-panel" aria-labelledby="staff-tab" hidden></section>
+      <section id="members-panel" class="tab-panel" aria-labelledby="members-tab" hidden></section>
+      <section id="income-panel" class="tab-panel" aria-labelledby="income-tab" hidden></section>
     </main>
   </div>
 
@@ -197,8 +198,55 @@
         </div>
       </form>
     </div>
+
+    <div id="members-modal" class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="member-form-title" hidden>
+      <form id="member-form">
+        <div class="modal-header">
+          <h2 id="member-form-title">Add Member</h2>
+          <button class="icon-button" data-close-modal type="button" aria-label="Close member form">x</button>
+        </div>
+        <div class="form-grid">
+          <label>
+            Name
+            <input id="member-name" type="text" required>
+          </label>
+          <label>
+            Email
+            <input id="member-email" type="email" required>
+          </label>
+          <label>
+            Contact
+            <input id="member-contact" type="tel" required>
+          </label>
+          <label>
+            Tier
+            <select id="member-tier" required>
+              <option value="basic">Basic</option>
+              <option value="pro">Pro</option>
+              <option value="unlimited">Unlimited</option>
+            </select>
+          </label>
+          <label>
+            Monthly rate
+            <input id="member-rate" type="text" readonly>
+          </label>
+          <label>
+            Status
+            <select id="member-status" required>
+              <option value="active">Active</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="secondary-button" data-close-modal type="button">Cancel</button>
+          <button id="member-submit" class="primary-button" type="submit">Save Member</button>
+        </div>
+      </form>
+    </div>
   </div>
 
+  <script src="../data-store.js"></script>
   <script src="dashboard.js" defer></script>
 </body>
 </html>

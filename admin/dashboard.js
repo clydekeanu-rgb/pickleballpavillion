@@ -1,28 +1,35 @@
 (function () {
   const DEMO_PASSWORD = 'demo1234';
-  const STORAGE = {
-    role: 'pbp_admin_role',
-    courts: 'pbp_admin_courts',
-    bookings: 'pbp_admin_bookings',
-    blocks: 'pbp_admin_blocks',
-    staff: 'pbp_admin_staff'
-  };
+  const store = window.PBPStore;
+  const {
+    STORAGE,
+    MEMBER_RATES,
+    OPERATING_START,
+    OPERATING_END,
+    DAILY_CAPACITY,
+    today,
+    formatDate,
+    addDays,
+    makeSlot,
+    endSlot,
+    prettyDate,
+    prettyTime,
+    toCivilTime,
+    parseLocalDate,
+    courtName,
+    courtById,
+    blocksForDate,
+    validateSlot
+  } = store;
 
-  const OPERATING_START = 6;
-  const OPERATING_END = 22;
-  const DAILY_CAPACITY = 8 * (OPERATING_END - OPERATING_START);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  let courts = [];
-  let bookings = [];
-  let courtBlocks = [];
-  let staffProfiles = [];
   let currentRole = localStorage.getItem(STORAGE.role);
   let activeTab = 'bookings';
   let calendarCursor = new Date(today.getFullYear(), today.getMonth(), 1);
   let pendingCancelBookingId = null;
   let pendingRemoveStaffId = null;
+  let pendingRemoveMemberId = null;
+  let editingMemberId = null;
+  let incomePeriod = 'month';
 
   const el = {
     loginOverlay: document.getElementById('login-overlay'),
@@ -34,6 +41,8 @@
     bookingsPanel: document.getElementById('bookings-panel'),
     calendarPanel: document.getElementById('calendar-panel'),
     staffPanel: document.getElementById('staff-panel'),
+    membersPanel: document.getElementById('members-panel'),
+    incomePanel: document.getElementById('income-panel'),
     bookingsTable: document.getElementById('bookings-table'),
     bookingCount: document.getElementById('booking-count'),
     filterDate: document.getElementById('filter-date'),
@@ -61,240 +70,31 @@
     staffForm: document.getElementById('staff-form'),
     staffName: document.getElementById('staff-name'),
     staffEmail: document.getElementById('staff-email'),
-    staffRole: document.getElementById('staff-role')
+    staffRole: document.getElementById('staff-role'),
+    membersModal: document.getElementById('members-modal'),
+    memberForm: document.getElementById('member-form'),
+    memberFormTitle: document.getElementById('member-form-title'),
+    memberName: document.getElementById('member-name'),
+    memberEmail: document.getElementById('member-email'),
+    memberContact: document.getElementById('member-contact'),
+    memberTier: document.getElementById('member-tier'),
+    memberRate: document.getElementById('member-rate'),
+    memberStatus: document.getElementById('member-status'),
+    memberSubmit: document.getElementById('member-submit')
   };
 
-  function pad(value) {
-    return String(value).padStart(2, '0');
+  function peso(value) {
+    return `PHP ${Number(value || 0).toLocaleString('en-PH')}`;
   }
 
-  function formatDate(date) {
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-  }
-
-  function parseLocalDate(dateString) {
-    const [year, month, day] = dateString.split('-').map(Number);
-    return new Date(year, month - 1, day);
-  }
-
-  function addDays(date, amount) {
-    const next = new Date(date);
-    next.setDate(next.getDate() + amount);
-    return next;
-  }
-
-  function makeSlot(hour) {
-    return `${pad(hour)}:00`;
-  }
-
-  function endSlot(startTime) {
-    return `${pad(Number(startTime.slice(0, 2)) + 1)}:00`;
-  }
-
-  function prettyDate(dateString) {
-    return parseLocalDate(dateString).toLocaleDateString('en-PH', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  }
-
-  function prettyTime(startTime, endTime) {
-    return `${toCivilTime(startTime)} - ${toCivilTime(endTime)}`;
-  }
-
-  function toCivilTime(time) {
-    const [hourText, minute] = time.split(':');
-    const hour = Number(hourText);
-    const suffix = hour >= 12 ? 'PM' : 'AM';
-    const civilHour = hour % 12 || 12;
-    return `${civilHour}:${minute} ${suffix}`;
-  }
-
-  function readJson(key, fallback) {
-    try {
-      const stored = localStorage.getItem(key);
-      return stored ? JSON.parse(stored) : fallback;
-    } catch (error) {
-      return fallback;
-    }
-  }
-
-  function saveAll() {
-    localStorage.setItem(STORAGE.courts, JSON.stringify(courts));
-    localStorage.setItem(STORAGE.bookings, JSON.stringify(bookings));
-    localStorage.setItem(STORAGE.blocks, JSON.stringify(courtBlocks));
-    localStorage.setItem(STORAGE.staff, JSON.stringify(staffProfiles));
-  }
-
-  function seedCourts() {
-    return [
-      { id: 'indoor-1', name: 'Indoor Court 1', type: 'indoor' },
-      { id: 'indoor-2', name: 'Indoor Court 2', type: 'indoor' },
-      { id: 'indoor-3', name: 'Indoor Court 3', type: 'indoor' },
-      { id: 'indoor-4', name: 'Indoor Court 4', type: 'indoor' },
-      { id: 'indoor-5', name: 'Indoor Court 5', type: 'indoor' },
-      { id: 'indoor-6', name: 'Indoor Court 6', type: 'indoor' },
-      { id: 'outdoor-1', name: 'Outdoor Court 1', type: 'outdoor' },
-      { id: 'outdoor-2', name: 'Outdoor Court 2', type: 'outdoor' }
-    ];
-  }
-
-  function seedBookings() {
-    const names = [
-      'Maria Santos', 'Paolo Garcia', 'Celine Lim', 'Ramon Dela Cruz',
-      'Bianca Ong', 'Nico Tan', 'Grace Villanueva', 'Miguel Reyes',
-      'Jasmine Uy', 'Carlo Mendoza', 'Tessa Chua', 'Andre Navarro',
-      'Leah Castillo', 'Rafi Bautista', 'Mika Sy', 'Jonas Aquino',
-      'Patricia Go', 'Kenji Ramos', 'Sofia Mercado', 'Daniel Yu',
-      'Alyssa Flores', 'Marco Chan', 'Irene Lopez', 'Luis Abad',
-      'Kara Salazar', 'Enzo Villamor', 'Bea Serrano', 'Noel Yap',
-      'Camille Cruz', 'Anton Rivera', 'Elaine Co', 'Diego Mateo',
-      'Hannah Ong', 'Victor Lao', 'Rina Solis', 'Joshua Lim',
-      'Nina Valdez', 'Samson Lee', 'Mara Robles'
-    ];
-    const busyOffsets = [-5, -1, 2, 4, 8, 11];
-    const quietOffsets = [-9, -7, 6, 13];
-    const output = [];
-    const usedSlots = new Set();
-    let id = 1;
-
-    function desiredCount(offset) {
-      if (busyOffsets.includes(offset)) return 4 + (Math.abs(offset) % 3);
-      if (quietOffsets.includes(offset)) return 1;
-      return Math.abs(offset) % 2 === 0 ? 2 : 3;
-    }
-
-    for (let offset = -10; offset <= 10 && output.length < 39; offset += 1) {
-      const dateString = formatDate(addDays(today, offset));
-      const count = desiredCount(offset);
-
-      for (let i = 0; i < count && output.length < 39; i += 1) {
-        const court = courts[(offset + i + courts.length * 3) % courts.length];
-        const hour = 7 + ((offset * 3 + i * 4 + 64) % 14);
-        const startTime = makeSlot(hour);
-        const slotKey = `${court.id}-${dateString}-${startTime}`;
-        if (usedSlots.has(slotKey)) continue;
-        usedSlots.add(slotKey);
-
-        const name = names[(id - 1) % names.length];
-        output.push({
-          id: `bk-${pad(id).padStart(3, '0')}`,
-          courtId: court.id,
-          date: dateString,
-          startTime,
-          endTime: endSlot(startTime),
-          customerName: name,
-          contact: `09${17 + (id % 7)}-555-${String(140 + id).padStart(4, '0')}`,
-          partySize: 2 + (id % 3),
-          status: id % 9 === 0 ? 'cancelled' : 'confirmed',
-          source: id % 5 === 0 ? 'walk-in' : 'online',
-          createdBy: id % 5 === 0 ? 'staff-demo' : null
-        });
-        id += 1;
-      }
-    }
-
-    return output;
-  }
-
-  function seedBlocks() {
-    return [
-      {
-        id: 'block-001',
-        courtId: 'indoor-1',
-        scope: 'single-court',
-        recurrence: 'none',
-        date: formatDate(addDays(today, 6)),
-        dayOfWeek: null,
-        startTime: '09:00',
-        endTime: '11:00',
-        reason: 'Court resurfacing',
-        recurrenceEndDate: null
-      },
-      {
-        id: 'block-002',
-        courtId: 'indoor-2',
-        scope: 'single-court',
-        recurrence: 'weekly',
-        date: null,
-        dayOfWeek: 1,
-        startTime: '09:00',
-        endTime: '11:00',
-        reason: 'Routine maintenance',
-        recurrenceEndDate: null
-      },
-      {
-        id: 'block-003',
-        courtId: null,
-        scope: 'all-courts',
-        recurrence: 'none',
-        date: formatDate(addDays(today, -2)),
-        dayOfWeek: null,
-        startTime: '18:00',
-        endTime: '20:00',
-        reason: 'Private clinic setup',
-        recurrenceEndDate: null
-      },
-      {
-        id: 'block-004',
-        courtId: 'outdoor-2',
-        scope: 'single-court',
-        recurrence: 'none',
-        date: formatDate(addDays(today, 12)),
-        dayOfWeek: null,
-        startTime: '15:00',
-        endTime: '17:00',
-        reason: 'Net replacement',
-        recurrenceEndDate: null
-      }
-    ];
-  }
-
-  function seedStaff() {
-    return [
-      { id: 'staff-001', name: 'Ana Reyes', email: 'ana@pickleballpavilion.ph', role: 'owner' },
-      { id: 'staff-002', name: 'Jomar Cruz', email: 'jomar@pickleballpavilion.ph', role: 'staff' },
-      { id: 'staff-003', name: 'Liza Tan', email: 'liza@pickleballpavilion.ph', role: 'staff' }
-    ];
-  }
-
-  function resetData() {
-    courts = seedCourts();
-    bookings = seedBookings();
-    courtBlocks = seedBlocks();
-    staffProfiles = seedStaff();
-    saveAll();
-  }
-
-  function loadData() {
-    courts = readJson(STORAGE.courts, null);
-    bookings = readJson(STORAGE.bookings, null);
-    courtBlocks = readJson(STORAGE.blocks, null);
-    staffProfiles = readJson(STORAGE.staff, null);
-
-    if (!courts || !bookings || !courtBlocks || !staffProfiles) {
-      courts = seedCourts();
-      bookings = seedBookings();
-      courtBlocks = seedBlocks();
-      staffProfiles = seedStaff();
-      saveAll();
-    }
-  }
-
-  function courtName(courtId) {
-    const court = courts.find((item) => item.id === courtId);
-    return court ? court.name : 'All Courts';
+  function titleCase(value) {
+    return value.charAt(0).toUpperCase() + value.slice(1);
   }
 
   function renderCourtOptions(select, includeAll) {
     select.innerHTML = '';
-    if (includeAll) {
-      select.append(new Option('All courts', 'all'));
-    }
-    courts.forEach((court) => {
-      select.append(new Option(court.name, court.id));
-    });
+    if (includeAll) select.append(new Option('All courts', 'all'));
+    store.courts.forEach((court) => select.append(new Option(court.name, court.id)));
   }
 
   function renderTimeOptions() {
@@ -305,57 +105,8 @@
     }
   }
 
-  function dateMatchesBlock(block, dateString) {
-    const date = parseLocalDate(dateString);
-    if (block.recurrence === 'weekly') {
-      const beforeEnd = !block.recurrenceEndDate || dateString <= block.recurrenceEndDate;
-      return block.dayOfWeek === date.getDay() && beforeEnd;
-    }
-    return block.date === dateString;
-  }
-
-  function timeOverlaps(startA, endA, startB, endB) {
-    return startA < endB && endA > startB;
-  }
-
-  function blocksForDate(dateString) {
-    return courtBlocks.filter((block) => dateMatchesBlock(block, dateString));
-  }
-
-  function slotBlockReason(courtId, dateString, startTime, endTime) {
-    const block = courtBlocks.find((item) => {
-      const courtApplies = item.scope === 'all-courts' || item.courtId === courtId;
-      return courtApplies &&
-        dateMatchesBlock(item, dateString) &&
-        timeOverlaps(startTime, endTime, item.startTime, item.endTime);
-    });
-    return block ? block.reason : null;
-  }
-
-  function slotTaken(courtId, dateString, startTime, ignoredBookingId) {
-    return bookings.some((booking) => (
-      booking.id !== ignoredBookingId &&
-      booking.status === 'confirmed' &&
-      booking.courtId === courtId &&
-      booking.date === dateString &&
-      timeOverlaps(startTime, endSlot(startTime), booking.startTime, booking.endTime)
-    ));
-  }
-
-  function validateSlot(courtId, dateString, startTime) {
-    const endTime = endSlot(startTime);
-    if (slotTaken(courtId, dateString, startTime)) {
-      return `${courtName(courtId)} already has a confirmed booking at ${toCivilTime(startTime)}.`;
-    }
-    const blockReason = slotBlockReason(courtId, dateString, startTime, endTime);
-    if (blockReason) {
-      return `${courtName(courtId)} is blocked at that time: ${blockReason}.`;
-    }
-    return '';
-  }
-
   function sortedBookings() {
-    return [...bookings].sort((a, b) => (
+    return [...store.bookings].sort((a, b) => (
       `${a.date} ${a.startTime} ${a.courtId}`.localeCompare(`${b.date} ${b.startTime} ${b.courtId}`)
     ));
   }
@@ -374,6 +125,19 @@
       const searchMatches = !query || booking.customerName.toLowerCase().includes(query);
       return dateMatches && courtMatches && statusMatches && searchMatches;
     });
+  }
+
+  function renderBookingAction(booking) {
+    if (booking.status !== 'confirmed') return '<span class="muted-status">Soft-cancelled</span>';
+    if (pendingCancelBookingId === booking.id) {
+      return `
+        <span class="confirm-actions">
+          <button class="danger-button" type="button" data-confirm-cancel="${booking.id}">Confirm</button>
+          <button class="small-button" type="button" data-cancel-cancel="${booking.id}">Keep</button>
+        </span>
+      `;
+    }
+    return `<button class="danger-button" type="button" data-start-cancel="${booking.id}">Cancel</button>`;
   }
 
   function renderBookings() {
@@ -406,24 +170,9 @@
     el.bookingCount.textContent = `${rows.length} booking${rows.length === 1 ? '' : 's'} shown`;
   }
 
-  function renderBookingAction(booking) {
-    if (booking.status !== 'confirmed') {
-      return '<span class="muted-status">Soft-cancelled</span>';
-    }
-    if (pendingCancelBookingId === booking.id) {
-      return `
-        <span class="confirm-actions">
-          <button class="danger-button" type="button" data-confirm-cancel="${booking.id}">Confirm</button>
-          <button class="small-button" type="button" data-cancel-cancel="${booking.id}">Keep</button>
-        </span>
-      `;
-    }
-    return `<button class="danger-button" type="button" data-start-cancel="${booking.id}">Cancel</button>`;
-  }
-
   function bookingDensity(dateString) {
     const filled = new Set();
-    bookings.forEach((booking) => {
+    store.bookings.forEach((booking) => {
       if (booking.status === 'confirmed' && booking.date === dateString) {
         filled.add(`${booking.courtId}-${booking.startTime}`);
       }
@@ -432,12 +181,11 @@
   }
 
   function renderCalendar() {
-    const monthLabel = calendarCursor.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' });
     const monthStart = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth(), 1);
     const gridStart = addDays(monthStart, -monthStart.getDay());
     const todayString = formatDate(today);
 
-    el.calendarTitle.textContent = monthLabel;
+    el.calendarTitle.textContent = calendarCursor.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' });
     el.calendarGrid.innerHTML = '';
     ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach((day) => {
       const header = document.createElement('div');
@@ -450,7 +198,6 @@
       const date = addDays(gridStart, i);
       const dateString = formatDate(date);
       const density = bookingDensity(dateString);
-      const hasBlocks = blocksForDate(dateString).length > 0;
       const percent = Math.min(100, Math.round((density / DAILY_CAPACITY) * 100));
       const cell = document.createElement('button');
       cell.type = 'button';
@@ -461,7 +208,7 @@
       cell.innerHTML = `
         <span class="day-topline">
           <span>${date.getDate()}</span>
-          ${hasBlocks ? '<span class="block-marker" aria-label="Court block active"></span>' : ''}
+          ${blocksForDate(dateString).length ? '<span class="block-marker" aria-label="Court block active"></span>' : ''}
         </span>
         <span class="density-track"><span class="density-fill" style="width: ${percent}%"></span></span>
         <span class="density-label">${density}/${DAILY_CAPACITY} slots booked</span>
@@ -487,36 +234,187 @@
       </div>
       <div class="table-wrap">
         <table class="data-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Action</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr></thead>
           <tbody id="staff-table"></tbody>
         </table>
       </div>
     `;
 
     const tbody = document.getElementById('staff-table');
-    staffProfiles.forEach((profile) => {
+    store.staffProfiles.forEach((profile) => {
       const row = document.createElement('tr');
       const action = pendingRemoveStaffId === profile.id
-        ? `<span class="confirm-actions">
-            <button class="danger-button" type="button" data-confirm-remove="${profile.id}">Confirm</button>
-            <button class="small-button" type="button" data-cancel-remove="${profile.id}">Keep</button>
-          </span>`
+        ? `<span class="confirm-actions"><button class="danger-button" type="button" data-confirm-remove="${profile.id}">Confirm</button><button class="small-button" type="button" data-cancel-remove="${profile.id}">Keep</button></span>`
         : `<button class="danger-button" type="button" data-start-remove="${profile.id}">Remove</button>`;
+      row.innerHTML = `<td>${profile.name}</td><td>${profile.email}</td><td><span class="role-badge">${profile.role}</span></td><td>${action}</td>`;
+      tbody.append(row);
+    });
+  }
+
+  function renderMembersPanel() {
+    if (currentRole !== 'owner') {
+      el.membersPanel.innerHTML = '';
+      return;
+    }
+
+    el.membersPanel.innerHTML = `
+      <div class="staff-toolbar">
+        <div>
+          <p class="eyebrow">Owner tools</p>
+          <h2>Members</h2>
+          <p class="staff-aside">Demo-only mock member records; no real billing, invoicing, or payment processor behind this list.</p>
+        </div>
+        <button id="open-member-form" class="primary-button" type="button">Add Member</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Tier</th><th>Status</th><th>Joined</th><th>Renews</th><th>Action</th></tr></thead>
+          <tbody id="members-table"></tbody>
+        </table>
+      </div>
+    `;
+
+    const tbody = document.getElementById('members-table');
+    store.members.forEach((member) => {
+      const row = document.createElement('tr');
+      const removeAction = pendingRemoveMemberId === member.id
+        ? `<span class="confirm-actions"><button class="danger-button" type="button" data-confirm-member-remove="${member.id}">Confirm</button><button class="small-button" type="button" data-cancel-member-remove="${member.id}">Keep</button></span>`
+        : `<button class="danger-button" type="button" data-start-member-remove="${member.id}">Remove</button>`;
       row.innerHTML = `
-        <td>${profile.name}</td>
-        <td>${profile.email}</td>
-        <td><span class="role-badge">${profile.role}</span></td>
-        <td>${action}</td>
+        <td>${member.name}</td>
+        <td>${member.email}</td>
+        <td><span class="tier-badge tier-${member.tier}">${titleCase(member.tier)}</span></td>
+        <td><span class="status-pill status-${member.status}">${member.status}</span></td>
+        <td>${prettyDate(member.joinDate)}</td>
+        <td>${prettyDate(member.renewalDate)}</td>
+        <td><span class="confirm-actions"><button class="small-button" type="button" data-start-member-edit="${member.id}">Edit</button>${removeAction}</span></td>
       `;
       tbody.append(row);
     });
+  }
+
+  function bookingRevenue(booking) {
+    const court = courtById(booking.courtId);
+    return court ? court.rate : 0;
+  }
+
+  function periodRange() {
+    const todayString = formatDate(today);
+    if (incomePeriod === 'today') return { start: todayString, end: todayString };
+    if (incomePeriod === 'month') {
+      return {
+        start: formatDate(new Date(today.getFullYear(), today.getMonth(), 1)),
+        end: formatDate(new Date(today.getFullYear(), today.getMonth() + 1, 0))
+      };
+    }
+    return { start: '0000-01-01', end: '9999-12-31' };
+  }
+
+  function periodBookings(includeCancelled) {
+    const range = periodRange();
+    return store.bookings.filter((booking) => (
+      booking.date >= range.start &&
+      booking.date <= range.end &&
+      (includeCancelled ? booking.status === 'cancelled' : booking.status === 'confirmed')
+    ));
+  }
+
+  function makeBar(label, value, max) {
+    const width = max ? Math.round((value / max) * 100) : 0;
+    return `<div class="analytics-row"><span>${label}</span><div class="density-track"><span class="density-fill" style="width: ${width}%"></span></div><strong>${peso(value)}</strong></div>`;
+  }
+
+  function renderIncomePanel() {
+    if (currentRole !== 'owner') {
+      el.incomePanel.innerHTML = '';
+      return;
+    }
+
+    const confirmed = periodBookings(false);
+    const cancelled = periodBookings(true);
+    const activeMembers = store.members.filter((member) => member.status === 'active');
+    const courtRevenue = confirmed.reduce((sum, booking) => sum + bookingRevenue(booking), 0);
+    const membershipMrr = activeMembers.reduce((sum, member) => sum + member.monthlyRate, 0);
+    const totalRevenue = courtRevenue + membershipMrr;
+    const lostBookingRevenue = cancelled.reduce((sum, booking) => sum + bookingRevenue(booking), 0);
+    const churnedMrr = store.members.filter((member) => member.status === 'cancelled').reduce((sum, member) => sum + member.monthlyRate, 0);
+
+    const byType = { indoor: 0, outdoor: 0 };
+    const bySource = { online: 0, 'walk-in': 0 };
+    const perCourt = store.courts.map((court) => ({ court, count: 0, revenue: 0 }));
+    confirmed.forEach((booking) => {
+      const court = courtById(booking.courtId);
+      if (!court) return;
+      const revenue = bookingRevenue(booking);
+      byType[court.type] += revenue;
+      bySource[booking.source] = (bySource[booking.source] || 0) + revenue;
+      const courtRow = perCourt.find((row) => row.court.id === court.id);
+      courtRow.count += 1;
+      courtRow.revenue += revenue;
+    });
+
+    const tierRows = Object.keys(MEMBER_RATES).map((tier) => {
+      const count = activeMembers.filter((member) => member.tier === tier).length;
+      return { tier, count, revenue: count * MEMBER_RATES[tier] };
+    });
+
+    const trend = buildTrend(confirmed);
+    const maxType = Math.max(...Object.values(byType), 1);
+    const maxSource = Math.max(...Object.values(bySource), 1);
+    const maxTrend = Math.max(...trend.map((item) => item.revenue), 1);
+
+    el.incomePanel.innerHTML = `
+      <div class="section-bar">
+        <div>
+          <p class="eyebrow">Owner analytics</p>
+          <h2>Income</h2>
+        </div>
+        <div class="period-tabs">
+          ${['today', 'month', 'all'].map((period) => `<button class="small-button ${incomePeriod === period ? 'active-period' : ''}" type="button" data-income-period="${period}">${period === 'today' ? 'Today' : period === 'month' ? 'This Month' : 'All-Time'}</button>`).join('')}
+        </div>
+      </div>
+      <div class="summary-grid">
+        <article class="summary-card"><span>Total Revenue</span><strong>${peso(totalRevenue)}</strong></article>
+        <article class="summary-card"><span>Court Revenue</span><strong>${peso(courtRevenue)}</strong></article>
+        <article class="summary-card"><span>Membership MRR</span><strong>${peso(membershipMrr)}</strong></article>
+        <article class="summary-card"><span>Active Members</span><strong>${activeMembers.length}</strong></article>
+      </div>
+      <div class="analytics-grid">
+        <section class="analytics-panel"><h3>Revenue by Court Type</h3>${Object.entries(byType).map(([label, value]) => makeBar(titleCase(label), value, maxType)).join('')}</section>
+        <section class="analytics-panel"><h3>Revenue by Source</h3>${Object.entries(bySource).map(([label, value]) => makeBar(titleCase(label), value, maxSource)).join('')}</section>
+        <section class="analytics-panel"><h3>Membership by Tier</h3>${tierRows.map((row) => makeBar(`${titleCase(row.tier)} (${row.count})`, row.revenue, membershipMrr || 1)).join('')}</section>
+        <section class="analytics-panel"><h3>Revenue Trend</h3>${trend.map((row) => makeBar(row.label, row.revenue, maxTrend)).join('')}</section>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Court</th><th>Type</th><th>Bookings</th><th>Revenue</th></tr></thead>
+          <tbody>${perCourt.sort((a, b) => b.revenue - a.revenue).map((row) => `<tr><td>${row.court.name}</td><td>${row.court.type}</td><td>${row.count}</td><td>${peso(row.revenue)}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+      <article class="churn-card">
+        <span>Lost revenue signal</span>
+        <strong>${peso(lostBookingRevenue + churnedMrr)}</strong>
+        <p>Cancelled bookings in period: ${peso(lostBookingRevenue)}. Churned MRR: ${peso(churnedMrr)}.</p>
+      </article>
+    `;
+  }
+
+  function buildTrend(confirmed) {
+    const buckets = new Map();
+    if (incomePeriod === 'today') {
+      const label = prettyDate(formatDate(today));
+      buckets.set(label, 0);
+    }
+
+    confirmed.forEach((booking) => {
+      const date = parseLocalDate(booking.date);
+      const label = incomePeriod === 'all'
+        ? `Week of ${prettyDate(formatDate(addDays(date, -date.getDay())))}`
+        : prettyDate(booking.date);
+      buckets.set(label, (buckets.get(label) || 0) + bookingRevenue(booking));
+    });
+
+    return [...buckets.entries()].map(([label, revenue]) => ({ label, revenue }));
   }
 
   function renderTabs() {
@@ -526,10 +424,10 @@
     ];
 
     if (currentRole === 'owner') {
-      tabs.push({ id: 'staff', label: 'Staff' });
+      tabs.push({ id: 'staff', label: 'Staff' }, { id: 'members', label: 'Members' }, { id: 'income', label: 'Income' });
     }
 
-    if (activeTab === 'staff' && currentRole !== 'owner') {
+    if (['staff', 'members', 'income'].includes(activeTab) && currentRole !== 'owner') {
       activeTab = 'bookings';
     }
 
@@ -548,6 +446,8 @@
     el.bookingsPanel.hidden = activeTab !== 'bookings';
     el.calendarPanel.hidden = activeTab !== 'calendar';
     el.staffPanel.hidden = activeTab !== 'staff';
+    el.membersPanel.hidden = activeTab !== 'members';
+    el.incomePanel.hidden = activeTab !== 'income';
   }
 
   function renderAll() {
@@ -556,6 +456,8 @@
     renderBookings();
     renderCalendar();
     renderStaffPanel();
+    renderMembersPanel();
+    renderIncomePanel();
   }
 
   function showDashboard() {
@@ -573,40 +475,32 @@
     el.modalBackdrop.hidden = false;
     el.walkinModal.hidden = modal !== el.walkinModal;
     el.staffModal.hidden = modal !== el.staffModal;
+    el.membersModal.hidden = modal !== el.membersModal;
   }
 
   function closeModals() {
     el.walkinModal.hidden = true;
     el.staffModal.hidden = true;
+    el.membersModal.hidden = true;
     el.modalBackdrop.hidden = true;
     el.walkinWarning.hidden = true;
-  }
-
-  function prepareWalkinForm() {
-    el.walkinForm.reset();
-    el.walkinDate.value = el.filterDate.value || formatDate(today);
-    el.walkinWarning.hidden = true;
-    openModal(el.walkinModal);
+    editingMemberId = null;
   }
 
   function addWalkin() {
-    const courtId = el.walkinCourt.value;
-    const date = el.walkinDate.value;
-    const startTime = el.walkinTime.value;
-    const warning = validateSlot(courtId, date, startTime);
-
+    const warning = validateSlot(el.walkinCourt.value, el.walkinDate.value, el.walkinTime.value);
     if (warning) {
       el.walkinWarning.textContent = warning;
       el.walkinWarning.hidden = false;
       return;
     }
 
-    bookings.push({
+    store.bookings.push({
       id: `bk-${Date.now()}`,
-      courtId,
-      date,
-      startTime,
-      endTime: endSlot(startTime),
+      courtId: el.walkinCourt.value,
+      date: el.walkinDate.value,
+      startTime: el.walkinTime.value,
+      endTime: endSlot(el.walkinTime.value),
       customerName: el.walkinName.value.trim(),
       contact: el.walkinContact.value.trim(),
       partySize: Number(el.walkinParty.value),
@@ -614,25 +508,54 @@
       source: 'walk-in',
       createdBy: 'demo-staff'
     });
-
-    localStorage.setItem(STORAGE.bookings, JSON.stringify(bookings));
+    store.saveBookings();
     closeModals();
-    renderBookings();
-    renderCalendar();
+    renderAll();
   }
 
-  function addStaffProfile() {
-    // Portfolio mock only: this app pushes a display record and creates no real account, login, invite, or backend identity.
-    staffProfiles.push({
-      id: `staff-${Date.now()}`,
-      name: el.staffName.value.trim(),
-      email: el.staffEmail.value.trim(),
-      role: el.staffRole.value
-    });
-    localStorage.setItem(STORAGE.staff, JSON.stringify(staffProfiles));
+  function openMemberForm(member) {
+    editingMemberId = member ? member.id : null;
+    el.memberForm.reset();
+    el.memberFormTitle.textContent = member ? 'Edit Member' : 'Add Member';
+    el.memberSubmit.textContent = member ? 'Save Changes' : 'Add Member';
+    el.memberName.value = member ? member.name : '';
+    el.memberEmail.value = member ? member.email : '';
+    el.memberContact.value = member ? member.contact : '';
+    el.memberTier.value = member ? member.tier : 'basic';
+    el.memberStatus.value = member ? member.status : 'active';
+    updateMemberRate();
+    openModal(el.membersModal);
+  }
+
+  function updateMemberRate() {
+    el.memberRate.value = peso(MEMBER_RATES[el.memberTier.value]);
+  }
+
+  function saveMemberFromForm() {
+    const tier = el.memberTier.value;
+    const payload = {
+      name: el.memberName.value.trim(),
+      email: el.memberEmail.value.trim(),
+      contact: el.memberContact.value.trim(),
+      tier,
+      monthlyRate: MEMBER_RATES[tier],
+      status: el.memberStatus.value
+    };
+
+    if (editingMemberId) {
+      const member = store.members.find((item) => item.id === editingMemberId);
+      Object.assign(member, payload);
+    } else {
+      store.members.push({
+        id: `member-${Date.now()}`,
+        ...payload,
+        joinDate: formatDate(today),
+        renewalDate: formatDate(addDays(today, 30))
+      });
+    }
+    store.saveMembers();
     closeModals();
-    pendingRemoveStaffId = null;
-    renderStaffPanel();
+    renderAll();
   }
 
   function attachEvents() {
@@ -656,15 +579,6 @@
       localStorage.removeItem(STORAGE.role);
       currentRole = null;
       showLogin();
-    });
-
-    document.getElementById('reset-demo').addEventListener('click', () => {
-      resetData();
-      pendingCancelBookingId = null;
-      pendingRemoveStaffId = null;
-      renderCourtOptions(el.filterCourt, true);
-      renderCourtOptions(el.walkinCourt, false);
-      renderAll();
     });
 
     el.tabNav.addEventListener('click', (event) => {
@@ -695,25 +609,27 @@
         pendingCancelBookingId = startButton.dataset.startCancel;
         renderBookings();
       }
-
       if (confirmButton) {
-        const booking = bookings.find((item) => item.id === confirmButton.dataset.confirmCancel);
+        const booking = store.bookings.find((item) => item.id === confirmButton.dataset.confirmCancel);
         if (booking) {
           booking.status = 'cancelled';
-          localStorage.setItem(STORAGE.bookings, JSON.stringify(bookings));
+          store.saveBookings();
         }
         pendingCancelBookingId = null;
-        renderBookings();
-        renderCalendar();
+        renderAll();
       }
-
       if (keepButton) {
         pendingCancelBookingId = null;
         renderBookings();
       }
     });
 
-    el.openWalkin.addEventListener('click', prepareWalkinForm);
+    el.openWalkin.addEventListener('click', () => {
+      el.walkinForm.reset();
+      el.walkinDate.value = el.filterDate.value || formatDate(today);
+      el.walkinWarning.hidden = true;
+      openModal(el.walkinModal);
+    });
     el.walkinForm.addEventListener('submit', (event) => {
       event.preventDefault();
       addWalkin();
@@ -727,10 +643,7 @@
       });
     });
 
-    document.querySelectorAll('[data-close-modal]').forEach((button) => {
-      button.addEventListener('click', closeModals);
-    });
-
+    document.querySelectorAll('[data-close-modal]').forEach((button) => button.addEventListener('click', closeModals));
     el.modalBackdrop.addEventListener('click', (event) => {
       if (event.target === el.modalBackdrop) closeModals();
     });
@@ -739,17 +652,14 @@
       calendarCursor = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() - 1, 1);
       renderCalendar();
     });
-
     el.nextMonth.addEventListener('click', () => {
       calendarCursor = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + 1, 1);
       renderCalendar();
     });
-
     el.todayMonth.addEventListener('click', () => {
       calendarCursor = new Date(today.getFullYear(), today.getMonth(), 1);
       renderCalendar();
     });
-
     el.calendarGrid.addEventListener('click', (event) => {
       const cell = event.target.closest('[data-date]');
       if (!cell) return;
@@ -763,41 +673,75 @@
       const startButton = event.target.closest('[data-start-remove]');
       const confirmButton = event.target.closest('[data-confirm-remove]');
       const keepButton = event.target.closest('[data-cancel-remove]');
-
       if (openButton) {
         el.staffForm.reset();
         openModal(el.staffModal);
       }
-
       if (startButton) {
         pendingRemoveStaffId = startButton.dataset.startRemove;
         renderStaffPanel();
       }
-
       if (confirmButton) {
-        staffProfiles = staffProfiles.filter((profile) => profile.id !== confirmButton.dataset.confirmRemove);
-        localStorage.setItem(STORAGE.staff, JSON.stringify(staffProfiles));
+        store.staffProfiles = store.staffProfiles.filter((profile) => profile.id !== confirmButton.dataset.confirmRemove);
         pendingRemoveStaffId = null;
         renderStaffPanel();
       }
-
       if (keepButton) {
         pendingRemoveStaffId = null;
         renderStaffPanel();
       }
     });
-
     el.staffForm.addEventListener('submit', (event) => {
       event.preventDefault();
-      addStaffProfile();
+      // Portfolio mock only: this app pushes a display record and creates no real account, login, invite, or backend identity.
+      store.staffProfiles.push({ id: `staff-${Date.now()}`, name: el.staffName.value.trim(), email: el.staffEmail.value.trim(), role: el.staffRole.value });
+      store.saveStaff();
+      closeModals();
+      renderAll();
+    });
+
+    el.membersPanel.addEventListener('click', (event) => {
+      const openButton = event.target.closest('#open-member-form');
+      const editButton = event.target.closest('[data-start-member-edit]');
+      const startButton = event.target.closest('[data-start-member-remove]');
+      const confirmButton = event.target.closest('[data-confirm-member-remove]');
+      const keepButton = event.target.closest('[data-cancel-member-remove]');
+      if (openButton) openMemberForm(null);
+      if (editButton) openMemberForm(store.members.find((member) => member.id === editButton.dataset.startMemberEdit));
+      if (startButton) {
+        pendingRemoveMemberId = startButton.dataset.startMemberRemove;
+        renderMembersPanel();
+      }
+      if (confirmButton) {
+        store.members = store.members.filter((member) => member.id !== confirmButton.dataset.confirmMemberRemove);
+        pendingRemoveMemberId = null;
+        renderMembersPanel();
+        renderIncomePanel();
+      }
+      if (keepButton) {
+        pendingRemoveMemberId = null;
+        renderMembersPanel();
+      }
+    });
+    el.memberTier.addEventListener('input', updateMemberRate);
+    el.memberForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      saveMemberFromForm();
+    });
+
+    el.incomePanel.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-income-period]');
+      if (!button) return;
+      incomePeriod = button.dataset.incomePeriod;
+      renderIncomePanel();
     });
   }
 
   function init() {
-    loadData();
     renderCourtOptions(el.filterCourt, true);
     renderCourtOptions(el.walkinCourt, false);
     renderTimeOptions();
+    updateMemberRate();
     attachEvents();
 
     if (currentRole === 'owner' || currentRole === 'staff') {

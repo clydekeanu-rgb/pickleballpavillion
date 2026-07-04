@@ -625,6 +625,17 @@
       <div class="modal-body" id="modal-booking-details">
         <!-- JS will inject summary -->
       </div>
+      <div class="modal-body booking-customer-fields">
+        <label>
+          Name
+          <input id="booking-customer-name" type="text" autocomplete="name" required>
+        </label>
+        <label>
+          Contact
+          <input id="booking-customer-contact" type="tel" autocomplete="tel" required>
+        </label>
+        <p id="booking-modal-error" class="booking-modal-error" role="alert" hidden></p>
+      </div>
       <div class="modal-footer">
         <button class="btn btn-outline" id="modal-cancel-btn">Cancel</button>
         <button class="btn btn-primary" id="modal-pay-btn">Proceed to Pay (₱<span id="modal-pay-amount">0</span>)</button>
@@ -652,6 +663,7 @@
   <!-- JS Code -->
   <!-- Hero particle effect (Three.js, scroll-driven). Remove this tag to disable. -->
   <script type="module" src="hero-particles.js"></script>
+  <script src="data-store.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
