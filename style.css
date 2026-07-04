@@ -2017,3 +2017,14 @@ p:last-child {
     transition: none;
   }
 }
+
+/* 22. Hero Particle Canvas (Three.js) */
+#hero-particle-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* short opacity transition so the scroll-driven fade feels continuous */
+  transition: opacity 0.1s linear;
+}
+
