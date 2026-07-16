@@ -12,9 +12,6 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.130.0/+esm';
 import { gsap } from 'https://cdn.jsdelivr.net/npm/gsap@3.7.0/+esm';
 
-// ─── Reduced-motion bail-out ───────────────────────────────────────────────
-if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-
 const imgUrl = 'images/hero-1.jpeg';
 const imgRatio = 1920 / 1080;
 const focusCameraZ = 180;
@@ -161,5 +158,3 @@ function cleanup() {
   const heroBgImg = document.querySelector('.hero-bg-image');
   if (heroBgImg) heroBgImg.style.opacity = '1';
 }
-
-} // end reduced-motion guard
