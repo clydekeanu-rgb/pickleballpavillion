@@ -98,6 +98,10 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
+.dashboard-main {
+  color: var(--color-ink);
+}
+
 .dashboard-shell {
   min-height: 100vh;
 }
@@ -235,6 +239,7 @@ button:focus-visible {
 .section-bar h2 {
   margin: 0;
   font-size: 1.45rem;
+  color: var(--color-ink);
 }
 
 .filters {
@@ -268,6 +273,7 @@ button:focus-visible {
   text-align: left;
   border-bottom: 1px solid #eee8dd;
   vertical-align: middle;
+  color: var(--color-ink);
 }
 
 .data-table th {

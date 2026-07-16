@@ -776,9 +776,18 @@ p:last-child {
 /* 9. Dual CTA Section */
 .dual-cta-section {
   padding: 80px 0;
-  background-color: var(--color-surface);
-  border-top: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
+  background-color: transparent;
+  position: relative;
+  z-index: 2;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-cta-section {
+  padding: 80px 0;
+  background-color: transparent;
+  position: relative;
+  z-index: 2;
 }
 
 .dual-path-stack {
@@ -883,7 +892,9 @@ p:last-child {
 /* 11. Interactive Booking Section */
 .booking-section {
   padding: 100px 0;
-  background-color: var(--color-surface);
+  background-color: transparent;
+  position: relative;
+  z-index: 2;
 }
 
 .booking-wrapper {
@@ -1301,11 +1312,13 @@ p:last-child {
 
 /* 13. Coaching Section & Leagues (Alternating grid layout handled dynamically via .alternating class) */
 .coaching-section, .leagues-section {
-  background-color: var(--color-surface);
+  background-color: transparent;
+  position: relative;
+  z-index: 2;
 }
 
 .leagues-section {
-  background-color: var(--color-paper);
+  background-color: transparent;
 }
 
 .section-grid .content-block {
@@ -1320,7 +1333,9 @@ p:last-child {
 /* 14. Photo Grid Gallery Section */
 .gallery-section {
   padding: 100px 0;
-  background-color: var(--color-surface);
+  background-color: transparent;
+  position: relative;
+  z-index: 2;
 }
 
 .gallery-grid {
@@ -1383,7 +1398,9 @@ p:last-child {
 /* 15. Testimonial Section */
 .testimonial-section {
   padding: 100px 0;
-  background-color: var(--color-bg);
+  background-color: transparent;
+  position: relative;
+  z-index: 2;
   overflow: hidden;
 }
 
@@ -1468,7 +1485,9 @@ p:last-child {
 /* 16. FAQ Section (Accordion) */
 .faq-section {
   padding: 100px 0;
-  background-color: var(--color-paper);
+  background-color: transparent;
+  position: relative;
+  z-index: 2;
 }
 
 .faq-accordion-container {
@@ -1564,15 +1583,17 @@ p:last-child {
 
 /* 17. Detailed Footer & Newsletter Signup */
 .site-footer {
-  background-color: var(--color-ink);
-  color: rgba(255, 255, 255, 0.75);
+  position: relative;
+  z-index: 2;
+  background-color: var(--color-surface);
+  color: var(--color-muted);
   padding: 80px 0 40px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--color-border);
 }
 
 .footer-newsletter-box {
   padding-bottom: 50px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--color-border);
   margin-bottom: 50px;
   display: grid;
   grid-template-columns: 1fr;
@@ -1588,7 +1609,7 @@ p:last-child {
 }
 
 .footer-newsletter-heading {
-  color: #FFFFFF !important;
+  color: var(--color-ink) !important;
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 2.25rem;
@@ -1660,7 +1681,7 @@ p:last-child {
   transform: translateY(0);
 }
 
-/* One deliberate light button against the dark footer */
+/* Light accent button in footer */
 .btn-footer-light {
   background-color: var(--color-header-bg) !important;
   color: var(--color-ink) !important;
@@ -1709,7 +1730,7 @@ p:last-child {
 }
 
 .site-footer .footer-col h4 {
-  color: #FFFFFF;
+  color: var(--color-ink);
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.15rem;
@@ -1723,7 +1744,7 @@ p:last-child {
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 1.35rem;
-  color: #FFFFFF;
+  color: var(--color-ink);
   display: inline-block;
   margin-bottom: 20px;
 }
@@ -1758,13 +1779,13 @@ p:last-child {
 
 .footer-links a {
   text-decoration: none;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--color-muted);
   font-size: 1rem;
   transition: var(--transition-fast);
 }
 
 .footer-links a:hover {
-  color: #FFFFFF;
+  color: var(--color-ink);
   padding-left: 4px;
 }
 
@@ -1784,7 +1805,7 @@ p:last-child {
 
 .hours-list li span:first-child {
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-ink);
 }
 
 .holiday-note {
@@ -1803,7 +1824,7 @@ p:last-child {
 }
 
 .address strong {
-  color: #FFFFFF;
+  color: var(--color-ink);
 }
 
 .contact-details {
@@ -1815,7 +1836,7 @@ p:last-child {
 
 /* Footer Bottom Bar */
 .footer-bottom {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--color-border);
   padding-top: 30px;
 }
 
@@ -1844,13 +1865,13 @@ p:last-child {
 
 .bottom-links a {
   text-decoration: none;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-muted);
   font-size: 0.9rem;
   transition: var(--transition-fast);
 }
 
 .bottom-links a:hover {
-  color: #FFFFFF;
+  color: var(--color-ink);
 }
 
 /* 20. Modals (Booking Confirmation & Success Dialogs) */
@@ -2031,36 +2052,51 @@ p:last-child {
 #hero-particle-canvas {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   pointer-events: none;
   /* short opacity transition so the scroll-driven fade feels continuous */
   transition: opacity 0.1s linear;
 }
 
-/* 23. Continuous Dark Particle Overlay (covers Hero to Booking) */
+/* 23. Continuous Dark Particle Overlay (covers full main) */
+main {
+  position: relative;
+}
+
 #particle-dark-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
+  inset: 0;
   z-index: 1; /* above particle canvas, below section content (z-index 2) */
   background: rgba(20, 24, 27, 0.65);
   pointer-events: none;
 }
 
 /* 24. Text Color & Contrast Overrides for Dark-Backed Sections */
-#about,
-#amenities,
-#pricing {
+main {
   color: #FFFFFF;
 }
 
+main .section-title,
 #about h2,
 #amenities h2,
-#pricing h2 {
+#pricing h2,
+#booking h2,
+#coaching h2,
+#leagues h2,
+#gallery h2,
+#testimonial h2,
+#faq h2,
+#dual-cta h2,
+#footer-cta h2 {
   color: #FFFFFF;
 }
 
+main .section-subtitle {
+  color: var(--color-accent-gold);
+}
+
+main .body-text,
+main .body-text.highlight-text,
 #about .body-text,
 #about .body-text.highlight-text,
 .amenity-content p,
@@ -2071,8 +2107,22 @@ p:last-child {
 .pricing-perks li,
 .pricing-perks li strong,
 .drop-in-highlight,
-.drop-in-highlight strong {
-  color: #FFFFFF !important;
+.drop-in-highlight strong,
+#coaching .body-text,
+#coaching .body-text.highlight-text,
+#leagues .body-text,
+#leagues .body-text.highlight-text,
+#gallery .section-title,
+#testimonial .testimonial-quote,
+#faq .section-title,
+#dual-cta .cta-heading,
+#footer-cta .cta-heading {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+#dual-cta .cta-subtext,
+#footer-cta .cta-subtext {
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .pricing-perks li span,
